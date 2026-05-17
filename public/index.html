@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenAI Realtime Translator</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero" aria-labelledby="app-title">
+        <div>
+          <p class="eyebrow">OpenAI Realtime</p>
+          <h1 id="app-title">Dịch giọng nói trực tiếp</h1>
+          <p class="subtitle">
+            Nói vào micro, app truyền âm thanh qua WebRTC và trả bản dịch bằng giọng nói hoặc phụ đề.
+          </p>
+        </div>
+        <div class="status-card" aria-live="polite">
+          <span id="status-dot" class="status-dot"></span>
+          <span id="status-text">Chưa kết nối</span>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <form id="settings-form" class="controls">
+          <label>
+            Ngôn ngữ nguồn
+            <select id="source-language">
+              <option value="auto">Tự nhận diện</option>
+              <option value="Vietnamese">Tiếng Việt</option>
+              <option value="English">English</option>
+              <option value="Chinese">中文</option>
+              <option value="Japanese">日本語</option>
+              <option value="Korean">한국어</option>
+            </select>
+          </label>
+
+          <label>
+            Dịch sang
+            <select id="target-language">
+              <option value="Vietnamese">Tiếng Việt</option>
+              <option value="English" selected>English</option>
+              <option value="Chinese">中文</option>
+              <option value="Japanese">日本語</option>
+              <option value="Korean">한국어</option>
+            </select>
+          </label>
+
+          <label>
+            Giọng đọc
+            <select id="voice">
+              <option value="marin">Marin</option>
+              <option value="alloy">Alloy</option>
+              <option value="verse">Verse</option>
+              <option value="cedar">Cedar</option>
+            </select>
+          </label>
+
+          <fieldset>
+            <legend>Chế độ</legend>
+            <label class="radio-line">
+              <input type="radio" name="mode" value="speech" checked />
+              Đọc bản dịch
+            </label>
+            <label class="radio-line">
+              <input type="radio" name="mode" value="captions" />
+              Chỉ phụ đề
+            </label>
+          </fieldset>
+
+          <div class="actions">
+            <button id="connect-button" type="submit">Bắt đầu</button>
+            <button id="stop-button" type="button" disabled>Dừng</button>
+          </div>
+        </form>
+
+        <section class="panels" aria-label="Transcript panels">
+          <article class="panel">
+            <div class="panel-heading">
+              <h2>Âm thanh vào</h2>
+              <span id="mic-state">Mic tắt</span>
+            </div>
+            <div id="source-log" class="log" aria-live="polite">
+              <p class="empty">Transcript nguồn sẽ xuất hiện ở đây.</p>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <h2>Bản dịch</h2>
+              <span id="latency-state">Realtime</span>
+            </div>
+            <div id="translation-log" class="log translation" aria-live="polite">
+              <p class="empty">Bản dịch sẽ xuất hiện khi bạn nói.</p>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <audio id="remote-audio" autoplay></audio>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
