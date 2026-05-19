@@ -76,9 +76,13 @@ function appendDelta(container, delta) {
 
 function textFromEvent(event) {
   if (!event) return "";
+  if (typeof event.delta === "string") return event.delta;
   if (typeof event.transcript === "string") return event.transcript;
   if (typeof event.text === "string") return event.text;
   if (typeof event.output_text === "string") return event.output_text;
+  if (typeof event.audio_transcript === "string") return event.audio_transcript;
+  if (typeof event.input_audio_transcription?.text === "string") return event.input_audio_transcription.text;
+  if (typeof event.input_audio_transcription?.transcript === "string") return event.input_audio_transcription.transcript;
   if (typeof event.item?.transcript === "string") return event.item.transcript;
   if (typeof event.item?.text === "string") return event.item.text;
 
@@ -93,6 +97,38 @@ function textFromEvent(event) {
   return "";
 }
 
+function normalizeText(text) {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function isInputTranscriptDelta(event) {
+  const type = event.type || "";
+  return type.includes("input") && type.includes("transcript") && type.includes("delta");
+}
+
+function isOutputTranscriptDelta(event) {
+  const type = event.type || "";
+  return type.includes("output") && type.includes("transcript") && type.includes("delta");
+}
+
+function isInputTranscriptFinal(event) {
+  const type = event.type || "";
+  return type.includes("input") && type.includes("transcript") && (
+    type.includes("done") ||
+    type.includes("completed") ||
+    type.includes("final")
+  );
+}
+
+function isOutputTranscriptFinal(event) {
+  const type = event.type || "";
+  return type.includes("output") && type.includes("transcript") && (
+    type.includes("done") ||
+    type.includes("completed") ||
+    type.includes("final")
+  );
+}
+
 function finishCurrentMessage(container, finalText = "") {
   if (container.flushHandle) {
     cancelAnimationFrame(container.flushHandle);
@@ -100,7 +136,7 @@ function finishCurrentMessage(container, finalText = "") {
   }
 
   const message = container.currentMessage;
-  const cleanFinalText = finalText.trim();
+  const cleanFinalText = normalizeText(finalText);
   if (message && cleanFinalText) {
     message.textContent = cleanFinalText;
   }
@@ -222,29 +258,29 @@ async function connectRealtime(event) {
 }
 
 function handleRealtimeEvent(event) {
-  switch (event.type) {
-    case "session.input_transcript.delta":
-      appendDelta(sourceLog, event.delta || "");
-      break;
-    case "session.output_transcript.delta":
-      appendDelta(translationLog, event.delta || "");
-      break;
-    case "session.input_transcript.done":
-    case "session.input_transcript.completed":
-    case "session.input_transcript.final":
-      finishCurrentMessage(sourceLog, textFromEvent(event));
-      break;
-    case "session.output_transcript.done":
-    case "session.output_transcript.completed":
-    case "session.output_transcript.final":
-      finishCurrentMessage(translationLog, textFromEvent(event));
-      break;
-    case "error":
-      appendMessage(translationLog, event.error?.message || "Realtime error.", "error-message");
-      setStatus("Loi tu Realtime", "error");
-      break;
-    default:
-      break;
+  if (isInputTranscriptDelta(event)) {
+    appendDelta(sourceLog, textFromEvent(event));
+    return;
+  }
+
+  if (isOutputTranscriptDelta(event)) {
+    appendDelta(translationLog, textFromEvent(event));
+    return;
+  }
+
+  if (isInputTranscriptFinal(event)) {
+    finishCurrentMessage(sourceLog, textFromEvent(event));
+    return;
+  }
+
+  if (isOutputTranscriptFinal(event)) {
+    finishCurrentMessage(translationLog, textFromEvent(event));
+    return;
+  }
+
+  if (event.type === "error") {
+    appendMessage(translationLog, event.error?.message || "Realtime error.", "error-message");
+    setStatus("Loi tu Realtime", "error");
   }
 }
 

@@ -29,6 +29,8 @@ const languageMap = {
 };
 
 const voiceMap = {
+  shimmer: "shimmer",
+  echo: "echo",
   marin: "marin",
   cedar: "cedar"
 };
@@ -148,7 +150,7 @@ async function createClientSecret(req, res) {
 
   const sourceLanguage = languageMap[requestBody.sourceLanguage];
   const targetLanguage = languageMap[requestBody.targetLanguage] || "en";
-  const voice = voiceMap[requestBody.voice] || "marin";
+  const voice = voiceMap[requestBody.voice] || "shimmer";
   const transcriptionPrompt = buildTranscriptionPrompt(requestBody.domainMode);
   const sessionConfig = {
     sourceLanguage,
