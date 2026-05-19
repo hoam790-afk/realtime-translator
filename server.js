@@ -15,6 +15,19 @@ const mimeTypes = {
   ".svg": "image/svg+xml"
 };
 
+const languageMap = {
+  English: "en",
+  Vietnamese: "vi",
+  Chinese: "zh",
+  Japanese: "ja",
+  Korean: "ko",
+  en: "en",
+  vi: "vi",
+  zh: "zh",
+  ja: "ja",
+  ko: "ko"
+};
+
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(status, {
@@ -22,6 +35,12 @@ function sendJson(res, status, payload) {
     "content-length": Buffer.byteLength(body)
   });
   res.end(body);
+}
+
+async function readJsonBody(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
 }
 
 async function createClientSecret(req, res) {
@@ -34,54 +53,30 @@ async function createClientSecret(req, res) {
 
   let requestBody = {};
   try {
-    const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
-    requestBody = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+    requestBody = await readJsonBody(req);
   } catch {
     sendJson(res, 400, { error: "Invalid JSON body." });
     return;
   }
 
-  const targetLanguage = requestBody.targetLanguage || "Vietnamese";
-  const sourceLanguage = requestBody.sourceLanguage || "auto";
-  const voice = requestBody.voice || "marin";
-  const mode = requestBody.mode || "speech";
-
-  const instructions = [
-    "You are a live interpreter for a browser app.",
-    `Source language: ${sourceLanguage}. Target language: ${targetLanguage}.`,
-    "Translate the user's speech faithfully and naturally.",
-    "Preserve names, numbers, units, dates, customs terms, and business details.",
-    "If the input is unclear, translate the audible part and briefly mark uncertainty.",
-    mode === "captions"
-      ? "Return concise translated text captions. Do not speak unless explicitly asked."
-      : "Speak the translation in the target language. Keep responses brief and do not add commentary."
-  ].join(" ");
+  const targetLanguage = languageMap[requestBody.targetLanguage] || "en";
 
   try {
-    const upstream = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+    const upstream = await fetch("https://api.openai.com/v1/realtime/translations/client_secrets", {
       method: "POST",
       headers: {
-        authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "content-type": "application/json"
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         session: {
-          type: "realtime",
-          model: "gpt-realtime",
-          instructions,
+          model: "gpt-realtime-translate",
           audio: {
             input: {
-              transcription: {
-                model: "gpt-4o-transcribe"
-              },
-              turn_detection: {
-                type: "server_vad",
-                create_response: false,
-                interrupt_response: true
-              }
+              transcription: { model: "gpt-realtime-whisper" },
+              noise_reduction: { type: "near_field" }
             },
-            output: { voice }
+            output: { language: targetLanguage }
           }
         }
       })
@@ -90,7 +85,7 @@ async function createClientSecret(req, res) {
     const data = await upstream.json().catch(() => ({}));
     if (!upstream.ok) {
       sendJson(res, upstream.status, {
-        error: data.error?.message || "OpenAI could not create a client secret."
+        error: data.error?.message || "OpenAI could not create a translation client secret."
       });
       return;
     }

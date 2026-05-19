@@ -74,7 +74,7 @@ Nhap:
 
 ```text
 OPENAI_API_KEY=sk-proj-...
-PORT=3000
+PORT=3001
 ```
 
 Khong dua file `.env` len GitHub.
@@ -96,7 +96,7 @@ Sau lenh `pm2 startup`, PM2 se in ra mot lenh `sudo env ...`. Copy va chay dung 
 Kiem tra app:
 
 ```bash
-curl http://127.0.0.1:3000/health
+curl http://127.0.0.1:3001/health
 ```
 
 Ket qua dung:
@@ -123,7 +123,7 @@ server {
     client_max_body_size 20m;
 
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
