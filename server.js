@@ -28,25 +28,15 @@ const languageMap = {
   ko: "ko"
 };
 
-const voiceMap = {
-  shimmer: "shimmer",
-  echo: "echo",
-  marin: "marin",
-  cedar: "cedar"
-};
-
 function buildTranslationSession({
   sourceLanguage,
   targetLanguage,
-  voice,
-  includeVoice = true,
   includeSourceLanguage = true
 }) {
   const transcription = { model: "gpt-realtime-whisper" };
   if (includeSourceLanguage && sourceLanguage) transcription.language = sourceLanguage;
 
   const output = { language: targetLanguage };
-  if (includeVoice && voice) output.voice = voice;
 
   return {
     session: {
@@ -95,11 +85,9 @@ async function createClientSecret(req, res) {
 
   const sourceLanguage = languageMap[requestBody.sourceLanguage];
   const targetLanguage = languageMap[requestBody.targetLanguage] || "en";
-  const voice = voiceMap[requestBody.voice] || "shimmer";
   const sessionConfig = {
     sourceLanguage,
-    targetLanguage,
-    voice
+    targetLanguage
   };
 
   try {
@@ -123,23 +111,6 @@ async function createClientSecret(req, res) {
         },
         body: JSON.stringify(buildTranslationSession({
           ...sessionConfig,
-          includeSourceLanguage: false
-        }))
-      });
-      data = await upstream.json().catch(() => ({}));
-    }
-
-    const retryMessage = data.error?.message || "";
-    if (!upstream.ok && /voice|unknown parameter|unsupported/i.test(retryMessage)) {
-      upstream = await fetch("https://api.openai.com/v1/realtime/translations/client_secrets", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(buildTranslationSession({
-          ...sessionConfig,
-          includeVoice: false,
           includeSourceLanguage: false
         }))
       });

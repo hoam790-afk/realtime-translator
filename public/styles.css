@@ -247,6 +247,7 @@ button:disabled {
   grid-template-rows: auto 1fr;
   min-height: 560px;
   overflow: hidden;
+  position: relative;
 }
 
 .panel-heading {
@@ -276,12 +277,49 @@ button:disabled {
   gap: 12px;
   max-height: 620px;
   padding: 18px;
+  padding-right: 12px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--brand-red) rgba(226, 216, 204, 0.65);
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.log::-webkit-scrollbar {
+  width: 10px;
+}
+
+.log::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(226, 216, 204, 0.65);
+}
+
+.log::-webkit-scrollbar-thumb {
+  min-height: 48px;
+  border: 2px solid rgba(255, 253, 249, 0.94);
+  border-radius: 999px;
+  background: var(--brand-red);
+}
+
+.log::after {
+  content: "";
+  position: sticky;
+  right: 2px;
+  bottom: 2px;
+  align-self: flex-end;
+  width: 13px;
+  height: 13px;
+  margin-top: -13px;
+  border-radius: 999px;
+  background: var(--brand-gold);
+  box-shadow: 0 0 0 4px rgba(215, 166, 44, 0.18);
+  opacity: 0.8;
+  pointer-events: none;
 }
 
 .message {
-  width: fit-content;
-  max-width: 92%;
+  width: 100%;
+  max-width: 100%;
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -345,6 +383,7 @@ button:disabled {
   }
 
   .log {
-    min-height: 300px;
+    min-height: 340px;
+    max-height: min(64vh, 620px);
   }
 }

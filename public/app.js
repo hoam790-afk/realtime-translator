@@ -4,7 +4,6 @@ const stopButton = document.querySelector("#stop-button");
 const sourceLanguage = document.querySelector("#source-language");
 const targetLanguage = document.querySelector("#target-language");
 const domainMode = document.querySelector("#domain-mode");
-const voice = document.querySelector("#voice");
 const statusDot = document.querySelector("#status-dot");
 const statusText = document.querySelector("#status-text");
 const micState = document.querySelector("#mic-state");
@@ -101,6 +100,14 @@ function normalizeText(text) {
   return text.replace(/\s+/g, " ").trim();
 }
 
+function pickMoreCompleteText(currentText, finalText) {
+  const current = normalizeText(currentText || "");
+  const final = normalizeText(finalText || "");
+  if (!final) return current;
+  if (!current) return final;
+  return final.length >= current.length ? final : current;
+}
+
 function isInputTranscriptDelta(event) {
   const type = event.type || "";
   return type.includes("input") && type.includes("transcript") && type.includes("delta");
@@ -136,9 +143,8 @@ function finishCurrentMessage(container, finalText = "") {
   }
 
   const message = container.currentMessage;
-  const cleanFinalText = normalizeText(finalText);
-  if (message && cleanFinalText) {
-    message.textContent = cleanFinalText;
+  if (message) {
+    message.textContent = pickMoreCompleteText(message.textContent, finalText);
   }
 
   if (message && !message.textContent.trim()) {
@@ -159,7 +165,6 @@ async function getClientSecret() {
       sourceLanguage: sourceLanguage.value,
       targetLanguage: targetLanguage.value,
       domainMode: domainMode.value,
-      voice: voice.value,
       mode: selectedMode()
     })
   });
