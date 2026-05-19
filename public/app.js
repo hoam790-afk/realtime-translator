@@ -4,6 +4,7 @@ const stopButton = document.querySelector("#stop-button");
 const sourceLanguage = document.querySelector("#source-language");
 const targetLanguage = document.querySelector("#target-language");
 const domainMode = document.querySelector("#domain-mode");
+const voice = document.querySelector("#voice");
 const statusDot = document.querySelector("#status-dot");
 const statusText = document.querySelector("#status-text");
 const micState = document.querySelector("#mic-state");
@@ -122,6 +123,7 @@ async function getClientSecret() {
       sourceLanguage: sourceLanguage.value,
       targetLanguage: targetLanguage.value,
       domainMode: domainMode.value,
+      voice: voice.value,
       mode: selectedMode()
     })
   });

@@ -28,6 +28,11 @@ const languageMap = {
   ko: "ko"
 };
 
+const voiceMap = {
+  marin: "marin",
+  cedar: "cedar"
+};
+
 const domainPrompts = {
   logistics: [
     "Translate in the context of logistics, customs, import-export, manufacturing, bonded/export-processing enterprises, machinery, and customs documentation.",
@@ -80,9 +85,21 @@ function buildTranscriptionPrompt(domainMode) {
   return domainPrompts[domainMode] || domainPrompts.logistics;
 }
 
-function buildTranslationSession(targetLanguage, transcriptionPrompt, includePrompt = true) {
+function buildTranslationSession({
+  sourceLanguage,
+  targetLanguage,
+  transcriptionPrompt,
+  voice,
+  includePrompt = true,
+  includeVoice = true,
+  includeSourceLanguage = true
+}) {
   const transcription = { model: "gpt-realtime-whisper" };
   if (includePrompt) transcription.prompt = transcriptionPrompt;
+  if (includeSourceLanguage && sourceLanguage) transcription.language = sourceLanguage;
+
+  const output = { language: targetLanguage };
+  if (includeVoice && voice) output.voice = voice;
 
   return {
     session: {
@@ -92,7 +109,7 @@ function buildTranslationSession(targetLanguage, transcriptionPrompt, includePro
           transcription,
           noise_reduction: { type: "near_field" }
         },
-        output: { language: targetLanguage }
+        output
       }
     }
   };
@@ -129,8 +146,16 @@ async function createClientSecret(req, res) {
     return;
   }
 
+  const sourceLanguage = languageMap[requestBody.sourceLanguage];
   const targetLanguage = languageMap[requestBody.targetLanguage] || "en";
+  const voice = voiceMap[requestBody.voice] || "marin";
   const transcriptionPrompt = buildTranscriptionPrompt(requestBody.domainMode);
+  const sessionConfig = {
+    sourceLanguage,
+    targetLanguage,
+    transcriptionPrompt,
+    voice
+  };
 
   try {
     let upstream = await fetch("https://api.openai.com/v1/realtime/translations/client_secrets", {
@@ -139,19 +164,41 @@ async function createClientSecret(req, res) {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(buildTranslationSession(targetLanguage, transcriptionPrompt))
+      body: JSON.stringify(buildTranslationSession(sessionConfig))
     });
 
     let data = await upstream.json().catch(() => ({}));
     const upstreamMessage = data.error?.message || "";
-    if (!upstream.ok && /prompt|unknown parameter|unsupported/i.test(upstreamMessage)) {
+    if (!upstream.ok && /prompt|language|unknown parameter|unsupported/i.test(upstreamMessage)) {
       upstream = await fetch("https://api.openai.com/v1/realtime/translations/client_secrets", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(buildTranslationSession(targetLanguage, transcriptionPrompt, false))
+        body: JSON.stringify(buildTranslationSession({
+          ...sessionConfig,
+          includePrompt: false,
+          includeSourceLanguage: false
+        }))
+      });
+      data = await upstream.json().catch(() => ({}));
+    }
+
+    const retryMessage = data.error?.message || "";
+    if (!upstream.ok && /voice|unknown parameter|unsupported/i.test(retryMessage)) {
+      upstream = await fetch("https://api.openai.com/v1/realtime/translations/client_secrets", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(buildTranslationSession({
+          ...sessionConfig,
+          includePrompt: false,
+          includeVoice: false,
+          includeSourceLanguage: false
+        }))
       });
       data = await upstream.json().catch(() => ({}));
     }
