@@ -3,7 +3,7 @@ const connectButton = document.querySelector("#connect-button");
 const stopButton = document.querySelector("#stop-button");
 const sourceLanguage = document.querySelector("#source-language");
 const targetLanguage = document.querySelector("#target-language");
-const voice = document.querySelector("#voice");
+const domainMode = document.querySelector("#domain-mode");
 const statusDot = document.querySelector("#status-dot");
 const statusText = document.querySelector("#status-text");
 const micState = document.querySelector("#mic-state");
@@ -97,7 +97,7 @@ async function getClientSecret() {
     body: JSON.stringify({
       sourceLanguage: sourceLanguage.value,
       targetLanguage: targetLanguage.value,
-      voice: voice.value,
+      domainMode: domainMode.value,
       mode: selectedMode()
     })
   });
