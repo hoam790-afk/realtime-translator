@@ -35,69 +35,14 @@ const voiceMap = {
   cedar: "cedar"
 };
 
-const domainPrompts = {
-  logistics: [
-    "Translate in the context of logistics, customs, import-export, manufacturing, bonded/export-processing enterprises, machinery, and customs documentation.",
-    "Act as a professional Vietnamese, English, Chinese, Korean, and Japanese interpreter with 20 years of logistics and customs experience.",
-    "Only return the translated meaning. Do not explain.",
-    "Prioritize these terms when applicable:",
-    "Thanh pho Ho Chi Minh / TPHCM = Ho Chi Minh City = 胡志明市",
-    "TNHH = limited liability company = 责任有限公司",
-    "DNCX = export processing enterprise / bonded enterprise = 保税企业",
-    "XNK = import-export = 进出口; NK = import = 进口; XK = export = 出口",
-    "HQ = customs = 海关; Chi cuc Hai quan = customs sub-department = 海关分局",
-    "TKHQ / to khai hai quan / to khai = customs declaration = 报关单",
-    "HS code = customs HS code = 海关编码",
-    "NLVT = raw materials and supplies = 原材料",
-    "BCQT = finalization report / settlement report = 结算报告",
-    "HTK = inventory = 库存; nhap xuat ton = inventory in-out-balance = 进销存",
-    "Dinh muc = bill of materials / usage norm = 用量表; hao hut = wastage rate = 损耗率",
-    "Ton dau ky = opening stock = 期初库存; ton cuoi ky = closing stock = 期末库存",
-    "Nhap trong ky = receipts during period = 本期进库; xuat trong ky = issues during period = 本期出库",
-    "Sau thong quan = post-clearance = 通关后; kiem tra sau thong quan = post-clearance audit = 通关后检查",
-    "Gia cong xuat khau = export processing = 加工出口; gia cong chuyen tiep = transfer processing = 转厂加工",
-    "Xuat nhap khau tai cho = on-spot import-export = 转厂进出口",
-    "Giay chung nhan dang ky kinh doanh = business registration certificate = 营业执照",
-    "Giay phep dau tu / chung nhan dau tu = investment license/certificate = 投资执照",
-    "BVMT = environmental protection = 环境保护; GTGT = VAT = 增值税; TTDB = special consumption tax = 特别消费税",
-    "Chung tu = documents = 文件; phe lieu = scrap = 废料; phe thai = waste = 废弃物; phe pham = defective products = 废品"
-  ].join("\n"),
-  technical: [
-    "Translate in the context of engineering, production, machinery, electronics, garment manufacturing, MSDS, COA, specifications, process control, and factory operations.",
-    "Act as a professional technical interpreter with 20 years of manufacturing experience.",
-    "Use accurate industry terminology and only return the translated result."
-  ].join("\n"),
-  legal: [
-    "Translate in the context of legal, contracts, compliance, customs law, administrative violations, and regulatory documents.",
-    "Act as a professional legal interpreter with 20 years of experience.",
-    "Use precise legal terminology and only return the translated result."
-  ].join("\n"),
-  trade: [
-    "Translate in the context of international trade, purchasing, sales, invoices, Incoterms, payments, banking, shipping, and customer negotiation.",
-    "Act as a professional trade interpreter with 20 years of experience.",
-    "Use natural business terminology and only return the translated result."
-  ].join("\n"),
-  general_specialist: [
-    "Detect the topic and translate as a 20-year expert in that field, such as doctor, engineer, lawyer, technician, manufacturer, electronics specialist, garment specialist, logistics specialist, or customs specialist.",
-    "Use the correct specialist terminology for the detected industry and only return the translated result."
-  ].join("\n")
-};
-
-function buildTranscriptionPrompt(domainMode) {
-  return domainPrompts[domainMode] || domainPrompts.logistics;
-}
-
 function buildTranslationSession({
   sourceLanguage,
   targetLanguage,
-  transcriptionPrompt,
   voice,
-  includePrompt = true,
   includeVoice = true,
   includeSourceLanguage = true
 }) {
   const transcription = { model: "gpt-realtime-whisper" };
-  if (includePrompt) transcription.prompt = transcriptionPrompt;
   if (includeSourceLanguage && sourceLanguage) transcription.language = sourceLanguage;
 
   const output = { language: targetLanguage };
@@ -151,11 +96,9 @@ async function createClientSecret(req, res) {
   const sourceLanguage = languageMap[requestBody.sourceLanguage];
   const targetLanguage = languageMap[requestBody.targetLanguage] || "en";
   const voice = voiceMap[requestBody.voice] || "shimmer";
-  const transcriptionPrompt = buildTranscriptionPrompt(requestBody.domainMode);
   const sessionConfig = {
     sourceLanguage,
     targetLanguage,
-    transcriptionPrompt,
     voice
   };
 
@@ -171,7 +114,7 @@ async function createClientSecret(req, res) {
 
     let data = await upstream.json().catch(() => ({}));
     const upstreamMessage = data.error?.message || "";
-    if (!upstream.ok && /prompt|language|unknown parameter|unsupported/i.test(upstreamMessage)) {
+    if (!upstream.ok && /language|unknown parameter|unsupported/i.test(upstreamMessage)) {
       upstream = await fetch("https://api.openai.com/v1/realtime/translations/client_secrets", {
         method: "POST",
         headers: {
@@ -180,7 +123,6 @@ async function createClientSecret(req, res) {
         },
         body: JSON.stringify(buildTranslationSession({
           ...sessionConfig,
-          includePrompt: false,
           includeSourceLanguage: false
         }))
       });
@@ -197,7 +139,6 @@ async function createClientSecret(req, res) {
         },
         body: JSON.stringify(buildTranslationSession({
           ...sessionConfig,
-          includePrompt: false,
           includeVoice: false,
           includeSourceLanguage: false
         }))
