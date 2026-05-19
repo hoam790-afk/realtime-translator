@@ -73,13 +73,37 @@ function appendDelta(container, delta) {
   }
 }
 
-function finishCurrentMessage(container) {
+function textFromEvent(event) {
+  if (!event) return "";
+  if (typeof event.transcript === "string") return event.transcript;
+  if (typeof event.text === "string") return event.text;
+  if (typeof event.output_text === "string") return event.output_text;
+  if (typeof event.item?.transcript === "string") return event.item.transcript;
+  if (typeof event.item?.text === "string") return event.item.text;
+
+  const content = event.item?.content || event.content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => part.transcript || part.text || "")
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  return "";
+}
+
+function finishCurrentMessage(container, finalText = "") {
   if (container.flushHandle) {
     cancelAnimationFrame(container.flushHandle);
     flushDelta(container);
   }
 
   const message = container.currentMessage;
+  const cleanFinalText = finalText.trim();
+  if (message && cleanFinalText) {
+    message.textContent = cleanFinalText;
+  }
+
   if (message && !message.textContent.trim()) {
     message.remove();
   }
@@ -204,10 +228,14 @@ function handleRealtimeEvent(event) {
       appendDelta(translationLog, event.delta || "");
       break;
     case "session.input_transcript.done":
-      finishCurrentMessage(sourceLog);
+    case "session.input_transcript.completed":
+    case "session.input_transcript.final":
+      finishCurrentMessage(sourceLog, textFromEvent(event));
       break;
     case "session.output_transcript.done":
-      finishCurrentMessage(translationLog);
+    case "session.output_transcript.completed":
+    case "session.output_transcript.final":
+      finishCurrentMessage(translationLog, textFromEvent(event));
       break;
     case "error":
       appendMessage(translationLog, event.error?.message || "Realtime error.", "error-message");
