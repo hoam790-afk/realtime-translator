@@ -146,8 +146,12 @@ async function connectRealtime(event) {
     peerConnection.onconnectionstatechange = () => {
       latencyState.textContent = peerConnection.connectionState;
       if (peerConnection.connectionState === "connected") setStatus("Dang phien dich", "live");
-      if (peerConnection.connectionState === "failed") setStatus("Mat ket noi", "error");
+      if (peerConnection.connectionState === "failed") {
+        setStatus("Mat ket noi", "error");
+        appendMessage(translationLog, "Ket noi WebRTC bi loi. Bam Dung roi Bat dau de tao phien moi.", "error-message");
+      }
       if (peerConnection.connectionState === "disconnected") setStatus("Dang ket noi lai...");
+      if (peerConnection.connectionState === "closed" && localStream) setStatus("Da dung");
     };
 
     localStream.getAudioTracks().forEach((track) => {
@@ -159,6 +163,9 @@ async function connectRealtime(event) {
       setStatus("Dang phien dich", "live");
     };
     dataChannel.onmessage = (event) => handleRealtimeEvent(JSON.parse(event.data));
+    dataChannel.onclose = () => {
+      if (localStream) setStatus("Kenh dich tam ngat", "error");
+    };
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
