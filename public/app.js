@@ -15,6 +15,7 @@ const remoteAudio = document.querySelector("#remote-audio");
 let peerConnection;
 let dataChannel;
 let localStream;
+let isRestarting = false;
 
 function setStatus(label, state = "idle") {
   statusText.textContent = label;
@@ -105,7 +106,14 @@ function pickMoreCompleteText(currentText, finalText) {
   const final = normalizeText(finalText || "");
   if (!final) return current;
   if (!current) return final;
-  return final.length >= current.length ? final : current;
+
+  const currentWords = current.split(/\s+/).filter(Boolean).length;
+  const finalWords = final.split(/\s+/).filter(Boolean).length;
+  return finalWords >= currentWords || final.length >= current.length ? final : current;
+}
+
+function shouldUseDedicatedSourceLanguage() {
+  return sourceLanguage.value !== "auto";
 }
 
 function isInputTranscriptDelta(event) {
@@ -163,6 +171,7 @@ async function getClientSecret() {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       sourceLanguage: sourceLanguage.value,
+      lockSourceLanguage: shouldUseDedicatedSourceLanguage(),
       targetLanguage: targetLanguage.value,
       domainMode: domainMode.value,
       mode: selectedMode()
@@ -177,12 +186,15 @@ async function getClientSecret() {
   return data.value || data.client_secret?.value || data.client_secret;
 }
 
-async function connectRealtime(event) {
-  event.preventDefault();
+async function startRealtime(options = {}) {
   connectButton.disabled = true;
   stopButton.disabled = false;
-  resetLog(sourceLog, "Lich su cau noi nguon se xuat hien o day.");
-  resetLog(translationLog, "Lich su ban dich se xuat hien khi ban noi.");
+
+  if (options.resetHistory !== false) {
+    resetLog(sourceLog, "Lich su cau noi nguon se xuat hien o day.");
+    resetLog(translationLog, "Lich su ban dich se xuat hien khi ban noi.");
+  }
+
   setStatus("Dang xin quyen micro...");
 
   try {
@@ -262,6 +274,26 @@ async function connectRealtime(event) {
   }
 }
 
+async function connectRealtime(event) {
+  event.preventDefault();
+  await startRealtime();
+}
+
+async function restartRealtimeForSettings() {
+  if (!localStream || isRestarting) return;
+
+  isRestarting = true;
+  setStatus("Dang doi cau hinh...");
+  appendMessage(
+    translationLog,
+    `Da doi dich sang ${targetLanguage.options[targetLanguage.selectedIndex].text}. Dang tao lai phien dich...`,
+    "notice"
+  );
+  stopRealtime({ keepError: true });
+  await startRealtime({ resetHistory: false });
+  isRestarting = false;
+}
+
 function handleRealtimeEvent(event) {
   if (isInputTranscriptDelta(event)) {
     appendDelta(sourceLog, textFromEvent(event));
@@ -310,3 +342,6 @@ function stopRealtime(options = {}) {
 
 form.addEventListener("submit", connectRealtime);
 stopButton.addEventListener("click", () => stopRealtime());
+sourceLanguage.addEventListener("change", restartRealtimeForSettings);
+targetLanguage.addEventListener("change", restartRealtimeForSettings);
+domainMode.addEventListener("change", restartRealtimeForSettings);

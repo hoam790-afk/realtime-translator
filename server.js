@@ -83,7 +83,7 @@ async function createClientSecret(req, res) {
     return;
   }
 
-  const sourceLanguage = languageMap[requestBody.sourceLanguage];
+  const sourceLanguage = requestBody.lockSourceLanguage ? languageMap[requestBody.sourceLanguage] : undefined;
   const targetLanguage = languageMap[requestBody.targetLanguage] || "en";
   const sessionConfig = {
     sourceLanguage,
