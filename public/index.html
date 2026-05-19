@@ -9,11 +9,16 @@
   <body>
     <main class="app-shell">
       <section class="hero" aria-labelledby="app-title">
-        <div>
-          <p class="eyebrow">OpenAI Realtime</p>
-          <h1 id="app-title">Dịch giọng nói trực tiếp</h1>
+        <div class="brand-block">
+          <img class="brand-logo" src="/logo.jpg" alt="Duong Minh Logistics" />
+          <div>
+            <p class="eyebrow">Duong Minh Logistics</p>
+            <h1 id="app-title">Thông dịch giọng nói realtime</h1>
+          </div>
+        </div>
+        <div class="hero-copy">
           <p class="subtitle">
-            Nói vào micro, app truyền âm thanh qua WebRTC và trả bản dịch bằng giọng nói hoặc phụ đề.
+            Phiên dịch trực tiếp cho trao đổi logistics, chứng từ, hải quan và làm việc với đối tác quốc tế.
           </p>
         </div>
         <div class="status-card" aria-live="polite">
@@ -50,10 +55,7 @@
           <label>
             Giọng đọc
             <select id="voice">
-              <option value="marin">Marin</option>
-              <option value="alloy">Alloy</option>
-              <option value="verse">Verse</option>
-              <option value="cedar">Cedar</option>
+              <option value="system">Tự động theo phiên dịch</option>
             </select>
           </label>
 
