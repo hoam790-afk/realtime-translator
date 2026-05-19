@@ -26,22 +26,55 @@ function clearEmpty(container) {
   if (empty) empty.remove();
 }
 
-function appendMessage(container, text = "") {
+function resetLog(container, emptyText) {
+  container.replaceChildren();
+  const empty = document.createElement("p");
+  empty.className = "empty";
+  empty.textContent = emptyText;
+  container.append(empty);
+  container.currentMessage = null;
+  container.pendingDelta = "";
+  container.flushHandle = null;
+}
+
+function appendMessage(container, text = "", className = "") {
   clearEmpty(container);
   const message = document.createElement("p");
-  message.className = "message";
+  message.className = `message ${className}`.trim();
   message.textContent = text;
   container.append(message);
   container.scrollTop = container.scrollHeight;
   return message;
 }
 
-function appendDelta(container, delta) {
+function flushDelta(container) {
+  container.flushHandle = null;
+  if (!container.pendingDelta) return;
+
   if (!container.currentMessage || !container.contains(container.currentMessage)) {
     container.currentMessage = appendMessage(container);
   }
-  container.currentMessage.textContent += delta;
+
+  container.currentMessage.textContent += container.pendingDelta;
+  container.pendingDelta = "";
   container.scrollTop = container.scrollHeight;
+}
+
+function appendDelta(container, delta) {
+  if (!delta) return;
+  container.pendingDelta = `${container.pendingDelta || ""}${delta}`;
+
+  if (!container.flushHandle) {
+    container.flushHandle = requestAnimationFrame(() => flushDelta(container));
+  }
+}
+
+function finishCurrentMessage(container) {
+  if (container.flushHandle) {
+    cancelAnimationFrame(container.flushHandle);
+    flushDelta(container);
+  }
+  container.currentMessage = null;
 }
 
 function selectedMode() {
@@ -62,7 +95,7 @@ async function getClientSecret() {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.error || "Could not create a translation client secret.");
+    throw new Error(data.error || "Không tạo được phiên dịch từ máy chủ.");
   }
 
   return data.value || data.client_secret?.value || data.client_secret;
@@ -72,11 +105,13 @@ async function connectRealtime(event) {
   event.preventDefault();
   connectButton.disabled = true;
   stopButton.disabled = false;
-  setStatus("Dang xin quyen mic...");
+  resetLog(sourceLog, "Transcript nguồn sẽ xuất hiện ở đây.");
+  resetLog(translationLog, "Bản dịch sẽ xuất hiện khi bạn nói.");
+  setStatus("Đang xin quyền micro...");
 
   try {
     if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error("Browser does not allow microphone access for this page. Open the HTTPS link in Safari or Chrome.");
+      throw new Error("Trình duyệt không cho phép dùng micro. Hãy mở link HTTPS bằng Safari hoặc Chrome.");
     }
 
     localStream = await navigator.mediaDevices.getUserMedia({
@@ -86,25 +121,24 @@ async function connectRealtime(event) {
         autoGainControl: true
       }
     });
-    micState.textContent = "Mic dang bat";
+    micState.textContent = "Mic đang bật";
 
-    setStatus("Dang tao phien dich...");
+    setStatus("Đang tạo phiên dịch...");
     const clientSecret = await getClientSecret();
-    if (!clientSecret) throw new Error("OpenAI did not return a client secret.");
+    if (!clientSecret) throw new Error("OpenAI không trả về client secret.");
 
     peerConnection = new RTCPeerConnection();
     peerConnection.ontrack = (event) => {
       remoteAudio.srcObject = event.streams[0];
       remoteAudio.play().catch(() => {
-        appendMessage(translationLog, "Tap the page once if iOS blocks audio playback.");
+        appendMessage(translationLog, "Nếu iPhone chưa phát tiếng, hãy chạm vào màn hình một lần rồi nói lại.", "notice");
       });
     };
     peerConnection.onconnectionstatechange = () => {
       latencyState.textContent = peerConnection.connectionState;
-      if (peerConnection.connectionState === "connected") setStatus("Dang dich realtime", "live");
-      if (["failed", "disconnected", "closed"].includes(peerConnection.connectionState)) {
-        setStatus("Da ngat ket noi");
-      }
+      if (peerConnection.connectionState === "connected") setStatus("Đang phiên dịch", "live");
+      if (peerConnection.connectionState === "failed") setStatus("Mất kết nối", "error");
+      if (peerConnection.connectionState === "disconnected") setStatus("Đang kết nối lại...");
     };
 
     localStream.getAudioTracks().forEach((track) => {
@@ -113,7 +147,7 @@ async function connectRealtime(event) {
 
     dataChannel = peerConnection.createDataChannel("oai-events");
     dataChannel.onopen = () => {
-      setStatus("Dang dich realtime", "live");
+      setStatus("Đang phiên dịch", "live");
     };
     dataChannel.onmessage = (event) => handleRealtimeEvent(JSON.parse(event.data));
 
@@ -131,7 +165,7 @@ async function connectRealtime(event) {
 
     if (!sdpResponse.ok) {
       const errorText = await sdpResponse.text();
-      throw new Error(errorText || "Could not connect to Realtime Translation WebRTC.");
+      throw new Error(errorText || "Không kết nối được Realtime Translation WebRTC.");
     }
 
     await peerConnection.setRemoteDescription({
@@ -139,9 +173,9 @@ async function connectRealtime(event) {
       sdp: await sdpResponse.text()
     });
   } catch (error) {
-    setStatus("Loi ket noi", "error");
-    appendMessage(translationLog, error.message);
-    stopRealtime();
+    setStatus("Lỗi kết nối", "error");
+    appendMessage(translationLog, error.message, "error-message");
+    stopRealtime({ keepError: true });
   }
 }
 
@@ -154,21 +188,21 @@ function handleRealtimeEvent(event) {
       appendDelta(translationLog, event.delta || "");
       break;
     case "session.input_transcript.done":
-      sourceLog.currentMessage = null;
+      finishCurrentMessage(sourceLog);
       break;
     case "session.output_transcript.done":
-      translationLog.currentMessage = null;
+      finishCurrentMessage(translationLog);
       break;
     case "error":
-      appendMessage(translationLog, event.error?.message || "Realtime error.");
-      setStatus("Loi tu Realtime", "error");
+      appendMessage(translationLog, event.error?.message || "Realtime error.", "error-message");
+      setStatus("Lỗi từ Realtime", "error");
       break;
     default:
       break;
   }
 }
 
-function stopRealtime() {
+function stopRealtime(options = {}) {
   if (dataChannel) dataChannel.close();
   if (peerConnection) peerConnection.close();
   if (localStream) localStream.getTracks().forEach((track) => track.stop());
@@ -176,16 +210,16 @@ function stopRealtime() {
   dataChannel = null;
   peerConnection = null;
   localStream = null;
-  sourceLog.currentMessage = null;
-  translationLog.currentMessage = null;
+  finishCurrentMessage(sourceLog);
+  finishCurrentMessage(translationLog);
   remoteAudio.srcObject = null;
 
-  micState.textContent = "Mic tat";
+  micState.textContent = "Mic tắt";
   latencyState.textContent = "Realtime";
   connectButton.disabled = false;
   stopButton.disabled = true;
-  if (!statusDot.classList.contains("error")) setStatus("Da dung");
+  if (!options.keepError) setStatus("Đã dừng");
 }
 
 form.addEventListener("submit", connectRealtime);
-stopButton.addEventListener("click", stopRealtime);
+stopButton.addEventListener("click", () => stopRealtime());
