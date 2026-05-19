@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OpenAI Realtime Translator</title>
+    <title>Hội thoại tự động - OpenAI Realtime Translator</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -13,17 +13,17 @@
           <img class="brand-logo" src="/logo.jpg" alt="Duong Minh Logistics" />
           <div>
             <p class="eyebrow">Duong Minh Logistics</p>
-            <h1 id="app-title">Thông dịch giọng nói realtime</h1>
+            <h1 id="app-title">Hội thoại tự động 2 chiều</h1>
           </div>
         </div>
         <div class="hero-copy">
           <p class="subtitle">
-            Phiên dịch trực tiếp cho trao đổi logistics, chứng từ, hải quan và làm việc với đối tác quốc tế.
+            Hai bên nói ngôn ngữ của mình, app tự dịch sang ngôn ngữ còn lại trong cùng một phiên hội thoại.
           </p>
         </div>
         <nav class="mode-tabs" aria-label="Chọn chế độ dịch">
-          <a class="mode-tab active" href="/">A. Dịch 1 chiều</a>
-          <a class="mode-tab" href="/conversation/">B. Hội thoại tự động</a>
+          <a class="mode-tab" href="/">A. Dịch 1 chiều</a>
+          <a class="mode-tab active" href="/conversation/">B. Hội thoại tự động</a>
         </nav>
         <div class="status-card" aria-live="polite">
           <span id="status-dot" class="status-dot"></span>
@@ -34,23 +34,22 @@
       <section class="workspace">
         <form id="settings-form" class="controls">
           <label>
-            Ngôn ngữ nguồn
-            <select id="source-language">
-              <option value="auto" selected>Tự nhận diện</option>
-              <option value="Vietnamese">Tiếng Việt</option>
-              <option value="English">English</option>
+            Tôi nói
+            <select id="my-language">
+              <option value="Vietnamese" selected>Tiếng Việt</option>
               <option value="Chinese">中文</option>
+              <option value="English">English</option>
               <option value="Japanese">日本語</option>
               <option value="Korean">한국어</option>
             </select>
           </label>
 
           <label>
-            Dịch sang
-            <select id="target-language">
+            Đối tác nói
+            <select id="partner-language">
+              <option value="Chinese" selected>中文</option>
               <option value="Vietnamese">Tiếng Việt</option>
-              <option value="English" selected>English</option>
-              <option value="Chinese">中文</option>
+              <option value="English">English</option>
               <option value="Japanese">日本語</option>
               <option value="Korean">한국어</option>
             </select>
@@ -85,24 +84,24 @@
           </div>
         </form>
 
-        <section class="panels" aria-label="Transcript panels">
+        <section class="panels" aria-label="Conversation transcript panels">
           <article class="panel">
             <div class="panel-heading">
               <h2>Âm thanh vào</h2>
               <span id="mic-state">Mic tắt</span>
             </div>
             <div id="source-log" class="log" aria-live="polite">
-              <p class="empty">Lịch sử câu nói nguồn sẽ xuất hiện ở đây.</p>
+              <p class="empty">Lịch sử lời nói gốc sẽ xuất hiện ở đây.</p>
             </div>
           </article>
 
           <article class="panel">
             <div class="panel-heading">
-              <h2>Bản dịch</h2>
+              <h2>Bản dịch 2 chiều</h2>
               <span id="latency-state">Realtime</span>
             </div>
             <div id="translation-log" class="log translation" aria-live="polite">
-              <p class="empty">Lịch sử bản dịch sẽ xuất hiện khi bạn nói.</p>
+              <p class="empty">App sẽ tự dịch sang ngôn ngữ còn lại khi mỗi bên nói.</p>
             </div>
           </article>
         </section>
@@ -110,6 +109,6 @@
     </main>
 
     <audio id="remote-audio" autoplay playsinline></audio>
-    <script type="module" src="/app.js"></script>
+    <script type="module" src="/conversation/app.js"></script>
   </body>
 </html>

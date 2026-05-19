@@ -28,6 +28,27 @@ const languageMap = {
   ko: "ko"
 };
 
+const languageNames = {
+  English: "English",
+  Vietnamese: "Vietnamese",
+  Chinese: "Chinese",
+  Japanese: "Japanese",
+  Korean: "Korean",
+  en: "English",
+  vi: "Vietnamese",
+  zh: "Chinese",
+  ja: "Japanese",
+  ko: "Korean"
+};
+
+const languageDisplayNames = {
+  English: "English",
+  Vietnamese: "Tiếng Việt",
+  Chinese: "Tiếng Trung",
+  Japanese: "Tiếng Nhật",
+  Korean: "Tiếng Hàn"
+};
+
 function buildTranslationSession({
   sourceLanguage,
   targetLanguage,
@@ -50,6 +71,44 @@ function buildTranslationSession({
       }
     }
   };
+}
+
+function buildConversationInstructions(myLanguage, partnerLanguage) {
+  const myDisplay = languageDisplayNames[myLanguage] || myLanguage;
+  const partnerDisplay = languageDisplayNames[partnerLanguage] || partnerLanguage;
+
+  return [
+    "You are a real-time interpreter for a two-person conversation.",
+    `The user's language is ${myLanguage} (${myDisplay}).`,
+    `The partner's language is ${partnerLanguage} (${partnerDisplay}).`,
+    `If the speaker uses ${myLanguage}, translate the utterance into ${partnerLanguage}.`,
+    `If the speaker uses ${partnerLanguage}, translate the utterance into ${myLanguage}.`,
+    "If a speaker uses a different language, translate into the other conversation language that best helps the two people understand each other.",
+    "Return only the translation. Do not explain, summarize, answer questions, add commentary, or mention what you are doing.",
+    "Preserve numbers, names, company names, product names, HS codes, customs declaration numbers, invoice numbers, and logistics terms exactly when possible.",
+    "Translate each completed spoken turn as fully as possible. Do not omit clauses."
+  ].join("\n");
+}
+
+function buildConversationSession({ myLanguage, partnerLanguage, speechOutput }) {
+  const session = {
+    type: "realtime",
+    model: "gpt-realtime-2",
+    instructions: buildConversationInstructions(myLanguage, partnerLanguage),
+    output_modalities: speechOutput ? ["audio", "text"] : ["text"],
+    audio: {
+      input: {
+        transcription: { model: "gpt-realtime-whisper" },
+        noise_reduction: { type: "near_field" }
+      }
+    }
+  };
+
+  if (speechOutput) {
+    session.audio.output = { voice: "marin" };
+  }
+
+  return { session };
 }
 
 function sendJson(res, status, payload) {
@@ -132,9 +191,72 @@ async function createClientSecret(req, res) {
   }
 }
 
+async function createConversationClientSecret(req, res) {
+  if (!process.env.OPENAI_API_KEY) {
+    sendJson(res, 500, {
+      error: "Missing OPENAI_API_KEY. Set it before starting the server."
+    });
+    return;
+  }
+
+  let requestBody = {};
+  try {
+    requestBody = await readJsonBody(req);
+  } catch {
+    sendJson(res, 400, { error: "Invalid JSON body." });
+    return;
+  }
+
+  const myLanguage = languageNames[requestBody.myLanguage] || "Vietnamese";
+  const partnerLanguage = languageNames[requestBody.partnerLanguage] || "Chinese";
+  const speechOutput = requestBody.mode !== "captions";
+
+  try {
+    let upstream = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(buildConversationSession({ myLanguage, partnerLanguage, speechOutput }))
+    });
+
+    let data = await upstream.json().catch(() => ({}));
+    const upstreamMessage = data.error?.message || "";
+    if (!upstream.ok && /gpt-realtime-2|model/i.test(upstreamMessage)) {
+      const fallback = buildConversationSession({ myLanguage, partnerLanguage, speechOutput });
+      fallback.session.model = "gpt-realtime";
+      upstream = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(fallback)
+      });
+      data = await upstream.json().catch(() => ({}));
+    }
+
+    if (!upstream.ok) {
+      sendJson(res, upstream.status, {
+        error: data.error?.message || "OpenAI could not create a conversation client secret."
+      });
+      return;
+    }
+
+    sendJson(res, 200, data);
+  } catch (error) {
+    sendJson(res, 502, {
+      error: `Could not reach OpenAI: ${error.message}`
+    });
+  }
+}
+
 async function serveStatic(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
-  const requestPath = url.pathname === "/" ? "/index.html" : url.pathname;
+  const requestPath = url.pathname === "/" || url.pathname.endsWith("/")
+    ? `${url.pathname}index.html`
+    : url.pathname;
   const safePath = normalize(decodeURIComponent(requestPath).replace(/^\/+/, ""));
   const filePath = join(publicDir, safePath);
 
@@ -163,6 +285,11 @@ const server = createServer(async (req, res) => {
 
   if (req.method === "POST" && req.url === "/api/realtime/client-secret") {
     await createClientSecret(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/realtime/conversation-client-secret") {
+    await createConversationClientSecret(req, res);
     return;
   }
 

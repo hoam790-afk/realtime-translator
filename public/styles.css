@@ -96,6 +96,34 @@ h1 {
   margin-left: 130px;
 }
 
+.mode-tabs {
+  grid-column: 1 / 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: 130px;
+}
+
+.mode-tab {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 253, 249, 0.86);
+  color: var(--ink);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.mode-tab.active {
+  border-color: var(--brand-red);
+  background: var(--brand-red);
+  color: white;
+}
+
 .subtitle {
   max-width: 760px;
   margin-bottom: 0;
@@ -370,6 +398,10 @@ button:disabled {
   }
 
   .hero-copy {
+    margin-left: 0;
+  }
+
+  .mode-tabs {
     margin-left: 0;
   }
 
