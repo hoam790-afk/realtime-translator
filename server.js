@@ -93,9 +93,9 @@ function buildConversationInstructions(myLanguage, partnerLanguage) {
 function buildConversationSession({ myLanguage, partnerLanguage, speechOutput }) {
   const session = {
     type: "realtime",
-    model: "gpt-realtime-2",
+    model: "gpt-realtime",
     instructions: buildConversationInstructions(myLanguage, partnerLanguage),
-    output_modalities: speechOutput ? ["audio", "text"] : ["text"],
+    output_modalities: speechOutput ? ["audio"] : ["text"],
     audio: {
       input: {
         transcription: { model: "gpt-realtime-whisper" },
@@ -223,9 +223,23 @@ async function createConversationClientSecret(req, res) {
 
     let data = await upstream.json().catch(() => ({}));
     const upstreamMessage = data.error?.message || "";
-    if (!upstream.ok && /gpt-realtime-2|model/i.test(upstreamMessage)) {
+    if (!upstream.ok && /gpt-realtime|model/i.test(upstreamMessage)) {
       const fallback = buildConversationSession({ myLanguage, partnerLanguage, speechOutput });
-      fallback.session.model = "gpt-realtime";
+      fallback.session.model = "gpt-realtime-2";
+      upstream = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(fallback)
+      });
+      data = await upstream.json().catch(() => ({}));
+    }
+
+    if (!upstream.ok && /voice|marin/i.test(data.error?.message || "")) {
+      const fallback = buildConversationSession({ myLanguage, partnerLanguage, speechOutput });
+      if (fallback.session.audio?.output) fallback.session.audio.output.voice = "alloy";
       upstream = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
         method: "POST",
         headers: {

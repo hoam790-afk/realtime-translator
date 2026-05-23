@@ -277,7 +277,7 @@ async function startRealtime(options = {}) {
       sdp: await sdpResponse.text()
     });
   } catch (error) {
-    setStatus("Loi ket noi", "error");
+    setStatus(`Loi ket noi: ${error.message.slice(0, 80)}`, "error");
     appendMessage(translationLog, error.message, "error-message");
     stopRealtime({ keepError: true });
   }
