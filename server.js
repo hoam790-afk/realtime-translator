@@ -1,4 +1,4 @@
-﻿import { createServer } from "node:http";
+import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -319,4 +319,3 @@ const server = createServer(async (req, res) => {
 server.listen(port, () => {
   console.log(`Realtime translator running at http://localhost:${port}`);
 });
-
