@@ -1,4 +1,4 @@
-import { createServer } from "node:http";
+﻿import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,10 +43,10 @@ const languageNames = {
 
 const languageDisplayNames = {
   English: "English",
-  Vietnamese: "Tiếng Việt",
-  Chinese: "Tiếng Trung",
-  Japanese: "Tiếng Nhật",
-  Korean: "Tiếng Hàn"
+  Vietnamese: "Tieng Viet",
+  Chinese: "Tieng Trung",
+  Japanese: "Tieng Nhat",
+  Korean: "Tieng Han"
 };
 
 function buildTranslationSession({
@@ -319,3 +319,4 @@ const server = createServer(async (req, res) => {
 server.listen(port, () => {
   console.log(`Realtime translator running at http://localhost:${port}`);
 });
+
