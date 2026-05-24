@@ -16,6 +16,8 @@ let peerConnection;
 let dataChannel;
 let localStream;
 let isRestarting = false;
+let currentConversationId = null;
+const clientTokenKey = "dml_client_token";
 
 function setStatus(label, state = "idle") {
   statusText.textContent = label;
@@ -163,6 +165,7 @@ function finishCurrentMessage(container, finalText = "") {
   const message = container.currentMessage;
   if (message) {
     message.textContent = pickMoreCompleteText(message.textContent, finalText);
+    saveHistoryMessage(container === translationLog ? "translation" : "source", message.textContent);
   }
 
   if (message && !message.textContent.trim()) {
@@ -173,6 +176,46 @@ function finishCurrentMessage(container, finalText = "") {
 
 function selectedMode() {
   return new FormData(form).get("mode") || "speech";
+}
+
+function clientToken() {
+  return localStorage.getItem(clientTokenKey);
+}
+
+async function historyApi(path, options = {}) {
+  if (!clientToken()) return null;
+  const headers = { "content-type": "application/json", ...(options.headers || {}) };
+  headers.authorization = `Bearer ${clientToken()}`;
+  const response = await fetch(path, { ...options, headers });
+  if (!response.ok) return null;
+  return response.json().catch(() => null);
+}
+
+async function createHistorySession() {
+  if (!clientToken()) return null;
+  const data = await historyApi("/api/history", {
+    method: "POST",
+    body: JSON.stringify({
+      mode: "conversation",
+      title: "Hoi thoai tu dong",
+      settings: {
+        myLanguage: myLanguage.value,
+        partnerLanguage: partnerLanguage.value,
+        domainMode: domainMode.value,
+        mode: selectedMode()
+      }
+    })
+  });
+  currentConversationId = data?.conversation?.id || null;
+  return currentConversationId;
+}
+
+function saveHistoryMessage(role, text) {
+  if (!currentConversationId || !text.trim()) return;
+  historyApi(`/api/history/${currentConversationId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ role, text })
+  });
 }
 
 async function getClientSecret() {
@@ -202,6 +245,7 @@ async function startRealtime(options = {}) {
   if (options.resetHistory !== false) {
     resetLog(sourceLog, "Lich su loi noi goc se xuat hien o day.");
     resetLog(translationLog, "App se tu dich sang ngon ngu con lai khi moi ben noi.");
+    currentConversationId = null;
   }
 
   setStatus("Dang xin quyen micro...");
@@ -221,6 +265,7 @@ async function startRealtime(options = {}) {
     micState.textContent = "Mic dang bat";
 
     setStatus("Dang tao phien hoi thoai...");
+    await createHistorySession();
     const clientSecret = await getClientSecret();
     if (!clientSecret) throw new Error("OpenAI khong tra ve client secret.");
 

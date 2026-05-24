@@ -1,10 +1,13 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const publicDir = join(__dirname, "public");
+const dataDir = join(__dirname, "data");
+const dbPath = join(dataDir, "app-db.json");
 const port = Number(process.env.PORT || 3000);
 
 const mimeTypes = {
@@ -12,7 +15,10 @@ const mimeTypes = {
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml"
+  ".svg": "image/svg+xml",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png"
 };
 
 const languageMap = {
@@ -124,6 +130,65 @@ async function readJsonBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function bearerToken(req) {
+  const header = req.headers.authorization || "";
+  return header.startsWith("Bearer ") ? header.slice(7) : "";
+}
+
+function defaultDb() {
+  return {
+    users: [],
+    sessions: [],
+    loginHistory: [],
+    conversations: []
+  };
+}
+
+async function readDb() {
+  try {
+    return { ...defaultDb(), ...JSON.parse(await readFile(dbPath, "utf8")) };
+  } catch {
+    return defaultDb();
+  }
+}
+
+async function writeDb(db) {
+  await mkdir(dataDir, { recursive: true });
+  await writeFile(dbPath, JSON.stringify(db, null, 2), "utf8");
+}
+
+async function authUser(req) {
+  const token = bearerToken(req);
+  if (!token) return null;
+  const db = await readDb();
+  const session = db.sessions.find((item) => item.token === token && item.role === "client");
+  if (!session) return null;
+  const user = db.users.find((item) => item.id === session.userId);
+  return user ? { db, user, session } : null;
+}
+
+async function authAdmin(req) {
+  const token = bearerToken(req);
+  if (!token) return null;
+  const db = await readDb();
+  const session = db.sessions.find((item) => item.token === token && item.role === "admin");
+  return session ? { db, session } : null;
+}
+
+function publicUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    provider: user.provider,
+    createdAt: user.createdAt,
+    lastLoginAt: user.lastLoginAt
+  };
 }
 
 async function createClientSecret(req, res) {
@@ -266,8 +331,239 @@ async function createConversationClientSecret(req, res) {
   }
 }
 
+async function loginClient(req, res) {
+  let requestBody = {};
+  try {
+    requestBody = await readJsonBody(req);
+  } catch {
+    sendJson(res, 400, { error: "Invalid JSON body." });
+    return;
+  }
+
+  const email = String(requestBody.email || "").trim().toLowerCase();
+  const provider = requestBody.provider === "google" ? "google" : "email";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    sendJson(res, 400, { error: "Email khong hop le." });
+    return;
+  }
+
+  const db = await readDb();
+  let user = db.users.find((item) => item.email === email);
+  if (!user) {
+    user = {
+      id: randomUUID(),
+      email,
+      provider,
+      createdAt: nowIso(),
+      lastLoginAt: nowIso()
+    };
+    db.users.push(user);
+  } else {
+    user.provider = provider;
+    user.lastLoginAt = nowIso();
+  }
+
+  const session = {
+    token: randomUUID(),
+    role: "client",
+    userId: user.id,
+    createdAt: nowIso()
+  };
+  db.sessions.push(session);
+  db.loginHistory.push({
+    id: randomUUID(),
+    userId: user.id,
+    email,
+    provider,
+    at: nowIso(),
+    ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress || ""
+  });
+  await writeDb(db);
+
+  sendJson(res, 200, { token: session.token, user: publicUser(user) });
+}
+
+async function loginAdmin(req, res) {
+  let requestBody = {};
+  try {
+    requestBody = await readJsonBody(req);
+  } catch {
+    sendJson(res, 400, { error: "Invalid JSON body." });
+    return;
+  }
+
+  if (requestBody.password !== "admin123") {
+    sendJson(res, 401, { error: "Sai mat khau admin." });
+    return;
+  }
+
+  const db = await readDb();
+  const session = {
+    token: randomUUID(),
+    role: "admin",
+    createdAt: nowIso()
+  };
+  db.sessions.push(session);
+  await writeDb(db);
+  sendJson(res, 200, { token: session.token, admin: true });
+}
+
+async function getMe(req, res) {
+  const auth = await authUser(req);
+  if (!auth) {
+    sendJson(res, 401, { error: "Chua dang nhap." });
+    return;
+  }
+  sendJson(res, 200, { user: publicUser(auth.user) });
+}
+
+function conversationSummary(conversation) {
+  const messages = conversation.messages || [];
+  return {
+    id: conversation.id,
+    title: conversation.title,
+    mode: conversation.mode,
+    settings: conversation.settings,
+    createdAt: conversation.createdAt,
+    updatedAt: conversation.updatedAt,
+    messageCount: messages.length,
+    preview: messages.slice(-1)[0]?.text || ""
+  };
+}
+
+async function listHistory(req, res) {
+  const auth = await authUser(req);
+  if (!auth) {
+    sendJson(res, 401, { error: "Chua dang nhap." });
+    return;
+  }
+
+  const conversations = auth.db.conversations
+    .filter((item) => item.userId === auth.user.id)
+    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+    .map(conversationSummary);
+  sendJson(res, 200, { conversations });
+}
+
+async function createHistory(req, res) {
+  const auth = await authUser(req);
+  if (!auth) {
+    sendJson(res, 401, { error: "Chua dang nhap." });
+    return;
+  }
+
+  const requestBody = await readJsonBody(req).catch(() => ({}));
+  const conversation = {
+    id: randomUUID(),
+    userId: auth.user.id,
+    title: String(requestBody.title || "Phien dich moi").slice(0, 120),
+    mode: String(requestBody.mode || "conversation").slice(0, 40),
+    settings: requestBody.settings || {},
+    messages: [],
+    createdAt: nowIso(),
+    updatedAt: nowIso()
+  };
+  auth.db.conversations.push(conversation);
+  await writeDb(auth.db);
+  sendJson(res, 200, { conversation: conversationSummary(conversation) });
+}
+
+async function addHistoryMessage(req, res, id) {
+  const auth = await authUser(req);
+  if (!auth) {
+    sendJson(res, 401, { error: "Chua dang nhap." });
+    return;
+  }
+
+  const conversation = auth.db.conversations.find((item) => item.id === id && item.userId === auth.user.id);
+  if (!conversation) {
+    sendJson(res, 404, { error: "Khong tim thay lich su." });
+    return;
+  }
+
+  const requestBody = await readJsonBody(req).catch(() => ({}));
+  const text = String(requestBody.text || "").trim();
+  if (!text) {
+    sendJson(res, 400, { error: "Noi dung rong." });
+    return;
+  }
+
+  conversation.messages.push({
+    id: randomUUID(),
+    role: requestBody.role === "translation" ? "translation" : "source",
+    text,
+    at: nowIso()
+  });
+  if (conversation.messages.length === 1) conversation.title = text.slice(0, 80);
+  conversation.updatedAt = nowIso();
+  await writeDb(auth.db);
+  sendJson(res, 200, { conversation: conversationSummary(conversation) });
+}
+
+async function getHistoryDetail(req, res, id) {
+  const auth = await authUser(req);
+  if (!auth) {
+    sendJson(res, 401, { error: "Chua dang nhap." });
+    return;
+  }
+
+  const conversation = auth.db.conversations.find((item) => item.id === id && item.userId === auth.user.id);
+  if (!conversation) {
+    sendJson(res, 404, { error: "Khong tim thay lich su." });
+    return;
+  }
+  sendJson(res, 200, { conversation });
+}
+
+async function deleteHistory(req, res, id) {
+  const auth = await authUser(req);
+  if (!auth) {
+    sendJson(res, 401, { error: "Chua dang nhap." });
+    return;
+  }
+
+  auth.db.conversations = auth.db.conversations.filter((item) => !(item.id === id && item.userId === auth.user.id));
+  await writeDb(auth.db);
+  sendJson(res, 200, { ok: true });
+}
+
+async function listAdminUsers(req, res) {
+  const auth = await authAdmin(req);
+  if (!auth) {
+    sendJson(res, 401, { error: "Chua dang nhap admin." });
+    return;
+  }
+
+  const users = auth.db.users.map((user) => ({
+    ...publicUser(user),
+    loginCount: auth.db.loginHistory.filter((item) => item.userId === user.id).length,
+    conversationCount: auth.db.conversations.filter((item) => item.userId === user.id).length
+  }));
+  sendJson(res, 200, { users, loginHistory: auth.db.loginHistory });
+}
+
+async function listAdminHistory(req, res) {
+  const auth = await authAdmin(req);
+  if (!auth) {
+    sendJson(res, 401, { error: "Chua dang nhap admin." });
+    return;
+  }
+
+  const conversations = auth.db.conversations
+    .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+    .map((conversation) => ({
+      ...conversation,
+      user: publicUser(auth.db.users.find((user) => user.id === conversation.userId) || {})
+    }));
+  sendJson(res, 200, { conversations });
+}
+
 async function serveStatic(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  if (url.pathname === "/licent" || url.pathname === "/license") {
+    url.pathname = "/license/";
+  }
+
   const requestPath = url.pathname === "/" || url.pathname.endsWith("/")
     ? `${url.pathname}index.html`
     : url.pathname;
@@ -292,6 +588,8 @@ async function serveStatic(req, res) {
 }
 
 const server = createServer(async (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+
   if (req.method === "GET" && req.url === "/health") {
     sendJson(res, 200, { ok: true });
     return;
@@ -304,6 +602,58 @@ const server = createServer(async (req, res) => {
 
   if (req.method === "POST" && req.url === "/api/realtime/conversation-client-secret") {
     await createConversationClientSecret(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/login") {
+    await loginClient(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/admin/login") {
+    await loginAdmin(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/api/me") {
+    await getMe(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/api/history") {
+    await listHistory(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/history") {
+    await createHistory(req, res);
+    return;
+  }
+
+  const historyMessageMatch = url.pathname.match(/^\/api\/history\/([^/]+)\/messages$/);
+  if (req.method === "POST" && historyMessageMatch) {
+    await addHistoryMessage(req, res, historyMessageMatch[1]);
+    return;
+  }
+
+  const historyDetailMatch = url.pathname.match(/^\/api\/history\/([^/]+)$/);
+  if (req.method === "GET" && historyDetailMatch) {
+    await getHistoryDetail(req, res, historyDetailMatch[1]);
+    return;
+  }
+
+  if (req.method === "DELETE" && historyDetailMatch) {
+    await deleteHistory(req, res, historyDetailMatch[1]);
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/api/admin/users") {
+    await listAdminUsers(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/api/admin/history") {
+    await listAdminHistory(req, res);
     return;
   }
 

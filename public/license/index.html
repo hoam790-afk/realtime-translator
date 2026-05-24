@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client Portal - Duong Minh Logistics</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="portal-shell">
+      <header class="portal-header">
+        <a class="portal-brand" href="/">
+          <img src="/logo.jpg" alt="Duong Minh Logistics" />
+          <span>Duong Minh Logistics</span>
+        </a>
+        <nav class="portal-nav">
+          <a href="/">Dich 1 chieu</a>
+          <a href="/conversation/">Hoi thoai tu dong</a>
+          <a href="/admin/">Admin</a>
+        </nav>
+      </header>
+
+      <section class="portal-grid">
+        <article class="portal-card login-card">
+          <p class="eyebrow">Client Portal</p>
+          <h1>Tai khoan & lich su phien dich</h1>
+          <p class="portal-muted">Dang nhap de luu lai lich su noi chuyen theo tung tai khoan. Ban co the xem lai hoac xoa khi khong can.</p>
+
+          <form id="login-form" class="portal-form">
+            <label>
+              Email
+              <input id="email" type="email" placeholder="name@company.com" required />
+            </label>
+            <button type="submit">Dang nhap bang email</button>
+            <button id="google-login" type="button" class="secondary-button">Dang nhap bang Google</button>
+          </form>
+
+          <div id="account-box" class="account-box hidden">
+            <span id="account-email"></span>
+            <button id="logout-button" type="button" class="text-button">Dang xuat</button>
+          </div>
+        </article>
+
+        <article class="portal-card history-card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">History</p>
+              <h2>Lich su hoi thoai</h2>
+            </div>
+            <button id="refresh-history" type="button" class="secondary-button">Tai lai</button>
+          </div>
+          <div id="history-list" class="history-list">
+            <p class="empty">Dang nhap de xem lich su.</p>
+          </div>
+        </article>
+      </section>
+    </main>
+    <script type="module" src="/license/app.js"></script>
+  </body>
+</html>

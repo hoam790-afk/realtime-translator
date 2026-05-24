@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hội thoại tự động - OpenAI Realtime Translator</title>
+    <title>Há»™i thoáº¡i tá»± Ä‘á»™ng - OpenAI Realtime Translator</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -13,95 +13,96 @@
           <img class="brand-logo" src="/logo.jpg" alt="Duong Minh Logistics" />
           <div>
             <p class="eyebrow">Duong Minh Logistics</p>
-            <h1 id="app-title">Hội thoại tự động 2 chiều</h1>
+            <h1 id="app-title">Há»™i thoáº¡i tá»± Ä‘á»™ng 2 chiá»u</h1>
           </div>
         </div>
         <div class="hero-copy">
           <p class="subtitle">
-            Hai bên nói ngôn ngữ của mình, app tự dịch sang ngôn ngữ còn lại trong cùng một phiên hội thoại.
+            Hai bÃªn nÃ³i ngÃ´n ngá»¯ cá»§a mÃ¬nh, app tá»± dá»‹ch sang ngÃ´n ngá»¯ cÃ²n láº¡i trong cÃ¹ng má»™t phiÃªn há»™i thoáº¡i.
           </p>
         </div>
-        <nav class="mode-tabs" aria-label="Chọn chế độ dịch">
-          <a class="mode-tab" href="/">A. Dịch 1 chiều</a>
-          <a class="mode-tab active" href="/conversation/">B. Hội thoại tự động</a>
+        <nav class="mode-tabs" aria-label="Chá»n cháº¿ Ä‘á»™ dá»‹ch">
+          <a class="mode-tab" href="/">A. Dá»‹ch 1 chiá»u</a>
+          <a class="mode-tab active" href="/conversation/">B. Há»™i thoáº¡i tá»± Ä‘á»™ng</a>
+          <a class="mode-tab subtle" href="/license/">Client</a>
         </nav>
         <div class="status-card" aria-live="polite">
           <span id="status-dot" class="status-dot"></span>
-          <span id="status-text">Chưa kết nối</span>
+          <span id="status-text">ChÆ°a káº¿t ná»‘i</span>
         </div>
       </section>
 
       <section class="workspace">
         <form id="settings-form" class="controls">
           <label>
-            Tôi nói
+            TÃ´i nÃ³i
             <select id="my-language">
-              <option value="Vietnamese" selected>Tiếng Việt</option>
-              <option value="Chinese">中文</option>
+              <option value="Vietnamese" selected>Tiáº¿ng Viá»‡t</option>
+              <option value="Chinese">ä¸­æ–‡</option>
               <option value="English">English</option>
-              <option value="Japanese">日本語</option>
-              <option value="Korean">한국어</option>
+              <option value="Japanese">æ—¥æœ¬èªž</option>
+              <option value="Korean">í•œêµ­ì–´</option>
             </select>
           </label>
 
           <label>
-            Đối tác nói
+            Äá»‘i tÃ¡c nÃ³i
             <select id="partner-language">
-              <option value="Chinese" selected>中文</option>
-              <option value="Vietnamese">Tiếng Việt</option>
+              <option value="Chinese" selected>ä¸­æ–‡</option>
+              <option value="Vietnamese">Tiáº¿ng Viá»‡t</option>
               <option value="English">English</option>
-              <option value="Japanese">日本語</option>
-              <option value="Korean">한국어</option>
+              <option value="Japanese">æ—¥æœ¬èªž</option>
+              <option value="Korean">í•œêµ­ì–´</option>
             </select>
           </label>
 
           <label>
-            Ngữ cảnh dịch
+            Ngá»¯ cáº£nh dá»‹ch
             <select id="domain-mode">
-              <option value="logistics" selected>Logistics / Hải quan / XNK</option>
-              <option value="technical">Kỹ thuật / MSDS / COA / Sản xuất</option>
-              <option value="legal">Luật / Hợp đồng / Tuân thủ</option>
-              <option value="trade">Thương mại / Đàm phán / Chứng từ</option>
-              <option value="general_specialist">Chuyên ngành khác</option>
+              <option value="logistics" selected>Logistics / Háº£i quan / XNK</option>
+              <option value="technical">Ká»¹ thuáº­t / MSDS / COA / Sáº£n xuáº¥t</option>
+              <option value="legal">Luáº­t / Há»£p Ä‘á»“ng / TuÃ¢n thá»§</option>
+              <option value="trade">ThÆ°Æ¡ng máº¡i / ÄÃ m phÃ¡n / Chá»©ng tá»«</option>
+              <option value="general_specialist">ChuyÃªn ngÃ nh khÃ¡c</option>
             </select>
           </label>
 
           <fieldset>
-            <legend>Chế độ</legend>
+            <legend>Cháº¿ Ä‘á»™</legend>
             <label class="radio-line">
               <input type="radio" name="mode" value="speech" checked />
-              Đọc bản dịch
+              Äá»c báº£n dá»‹ch
             </label>
             <label class="radio-line">
               <input type="radio" name="mode" value="captions" />
-              Chỉ phụ đề
+              Chá»‰ phá»¥ Ä‘á»
             </label>
           </fieldset>
 
           <div class="actions">
-            <button id="connect-button" type="submit">Bắt đầu</button>
-            <button id="stop-button" type="button" disabled>Dừng</button>
+            <button id="connect-button" type="submit">Báº¯t Ä‘áº§u</button>
+            <button id="stop-button" type="button" disabled>Dá»«ng</button>
           </div>
         </form>
 
         <section class="panels" aria-label="Conversation transcript panels">
           <article class="panel">
             <div class="panel-heading">
-              <h2>Âm thanh vào</h2>
-              <span id="mic-state">Mic tắt</span>
+              <h2>Ã‚m thanh vÃ o</h2>
+              <span id="mic-state">Mic táº¯t</span>
             </div>
             <div id="source-log" class="log" aria-live="polite">
-              <p class="empty">Lịch sử lời nói gốc sẽ xuất hiện ở đây.</p>
+              <p class="empty">Lá»‹ch sá»­ lá»i nÃ³i gá»‘c sáº½ xuáº¥t hiá»‡n á»Ÿ Ä‘Ã¢y.</p>
             </div>
           </article>
 
           <article class="panel">
             <div class="panel-heading">
-              <h2>Bản dịch 2 chiều</h2>
+              <h2>Báº£n dá»‹ch 2 chiá»u</h2>
               <span id="latency-state">Realtime</span>
             </div>
             <div id="translation-log" class="log translation" aria-live="polite">
-              <p class="empty">App sẽ tự dịch sang ngôn ngữ còn lại khi mỗi bên nói.</p>
+              <p class="empty">App sáº½ tá»± dá»‹ch sang ngÃ´n ngá»¯ cÃ²n láº¡i khi má»—i bÃªn nÃ³i.</p>
             </div>
           </article>
         </section>
@@ -112,3 +113,4 @@
     <script type="module" src="/conversation/app.js"></script>
   </body>
 </html>
+

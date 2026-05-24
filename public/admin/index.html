@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Duong Minh Logistics Translator</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="portal-shell">
+      <header class="portal-header">
+        <a class="portal-brand" href="/">
+          <img src="/logo.jpg" alt="Duong Minh Logistics" />
+          <span>Admin Console</span>
+        </a>
+        <nav class="portal-nav">
+          <a href="/license/">Client</a>
+          <a href="/conversation/">Hoi thoai</a>
+        </nav>
+      </header>
+
+      <section class="portal-grid admin-grid">
+        <article class="portal-card login-card">
+          <p class="eyebrow">Admin</p>
+          <h1>Quan ly client</h1>
+          <p class="portal-muted">Dang nhap bang mat khau quan tri de xem tai khoan khach va lich su phien dich.</p>
+          <form id="admin-login-form" class="portal-form">
+            <label>
+              Mat khau admin
+              <input id="admin-password" type="password" placeholder="admin123" required />
+            </label>
+            <button type="submit">Dang nhap admin</button>
+          </form>
+          <div id="admin-box" class="account-box hidden">
+            <span>Admin dang hoat dong</span>
+            <button id="admin-logout" type="button" class="text-button">Dang xuat</button>
+          </div>
+        </article>
+
+        <article class="portal-card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Users</p>
+              <h2>Tai khoan khach</h2>
+            </div>
+            <button id="admin-refresh" type="button" class="secondary-button">Tai lai</button>
+          </div>
+          <div id="users-list" class="history-list">
+            <p class="empty">Dang nhap admin de xem.</p>
+          </div>
+        </article>
+
+        <article class="portal-card admin-history-card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Conversation</p>
+              <h2>Lich su noi chuyen</h2>
+            </div>
+          </div>
+          <div id="admin-history-list" class="history-list">
+            <p class="empty">Dang nhap admin de xem.</p>
+          </div>
+        </article>
+      </section>
+    </main>
+    <script type="module" src="/admin/app.js"></script>
+  </body>
+</html>
