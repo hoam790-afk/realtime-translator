@@ -4,7 +4,9 @@ const googleLogin = document.querySelector("#google-login");
 const accountBox = document.querySelector("#account-box");
 const accountEmail = document.querySelector("#account-email");
 const logoutButton = document.querySelector("#logout-button");
-const historyList = document.querySelector("#history-list");
+const historyCard = document.querySelector("#history-card");
+const oneWayHistory = document.querySelector("#one-way-history");
+const conversationHistory = document.querySelector("#conversation-history");
 const refreshHistory = document.querySelector("#refresh-history");
 
 const tokenKey = "dml_client_token";
@@ -32,11 +34,13 @@ async function api(path, options = {}) {
 }
 
 function setEmpty(text) {
-  historyList.replaceChildren();
+  oneWayHistory.replaceChildren();
+  conversationHistory.replaceChildren();
   const empty = document.createElement("p");
   empty.className = "empty";
   empty.textContent = text;
-  historyList.append(empty);
+  oneWayHistory.append(empty.cloneNode(true));
+  conversationHistory.append(empty);
 }
 
 function updateAccount() {
@@ -44,19 +48,27 @@ function updateAccount() {
   if (!current) {
     loginForm.classList.remove("hidden");
     accountBox.classList.add("hidden");
-    setEmpty("Dang nhap de xem lich su.");
+    historyCard.classList.add("hidden");
     return;
   }
 
   loginForm.classList.add("hidden");
   accountBox.classList.remove("hidden");
+  historyCard.classList.remove("hidden");
   accountEmail.textContent = current.email;
 }
 
-function renderHistory(conversations) {
-  historyList.replaceChildren();
+function emptyNode(text) {
+  const empty = document.createElement("p");
+  empty.className = "empty";
+  empty.textContent = text;
+  return empty;
+}
+
+function renderGroup(container, conversations, emptyText) {
+  container.replaceChildren();
   if (!conversations.length) {
-    setEmpty("Chua co phien dich nao duoc luu.");
+    container.append(emptyNode(emptyText));
     return;
   }
 
@@ -65,18 +77,25 @@ function renderHistory(conversations) {
     row.className = "history-item";
     row.innerHTML = `
       <div>
-        <h3>${item.title || "Phien dich"}</h3>
-        <p>${new Date(item.updatedAt).toLocaleString("vi-VN")} · ${item.messageCount || 0} dong</p>
+        <h3>${item.title || "Phiên dịch"}</h3>
+        <p>${new Date(item.updatedAt).toLocaleString("vi-VN")} · ${item.messageCount || 0} dòng</p>
         <p class="preview">${item.preview || ""}</p>
       </div>
-      <button type="button" class="danger-button">Xoa</button>
+      <button type="button" class="danger-button">Xóa</button>
     `;
     row.querySelector("button").addEventListener("click", async () => {
       await api(`/api/history/${item.id}`, { method: "DELETE" });
       await loadHistory();
     });
-    historyList.append(row);
+    container.append(row);
   });
+}
+
+function renderHistory(conversations) {
+  const oneWay = conversations.filter((item) => item.mode === "one-way");
+  const twoWay = conversations.filter((item) => item.mode !== "one-way");
+  renderGroup(oneWayHistory, oneWay, "Chưa có lịch sử dịch 1 chiều.");
+  renderGroup(conversationHistory, twoWay, "Chưa có lịch sử hội thoại tự động.");
 }
 
 async function loadHistory() {
@@ -102,6 +121,10 @@ async function login(provider) {
   localStorage.setItem(userKey, JSON.stringify(data.user));
   updateAccount();
   await loadHistory();
+  const next = new URLSearchParams(window.location.search).get("next");
+  if (next && next.startsWith("/") && next !== "/license/") {
+    window.location.href = next;
+  }
 }
 
 loginForm.addEventListener("submit", async (event) => {
@@ -120,6 +143,7 @@ googleLogin.addEventListener("click", async () => {
 logoutButton.addEventListener("click", () => {
   localStorage.removeItem(tokenKey);
   localStorage.removeItem(userKey);
+  historyCard.classList.add("hidden");
   updateAccount();
 });
 

@@ -43,16 +43,27 @@
           </div>
         </article>
 
-        <article class="portal-card history-card">
+        <article id="history-card" class="portal-card history-card hidden">
           <div class="section-head">
             <div>
               <p class="eyebrow">History</p>
-              <h2>Lịch sử hội thoại</h2>
+              <h2>Lịch sử phiên dịch</h2>
             </div>
             <button id="refresh-history" type="button" class="secondary-button">Tải lại</button>
           </div>
-          <div id="history-list" class="history-list">
-            <p class="empty">Đăng nhập để xem lịch sử.</p>
+          <div class="history-folders">
+            <section class="history-folder">
+              <h3>Dịch 1 chiều</h3>
+              <div id="one-way-history" class="history-list compact">
+                <p class="empty">Chưa có lịch sử dịch 1 chiều.</p>
+              </div>
+            </section>
+            <section class="history-folder">
+              <h3>Hội thoại tự động</h3>
+              <div id="conversation-history" class="history-list compact">
+                <p class="empty">Chưa có lịch sử hội thoại.</p>
+              </div>
+            </section>
           </div>
         </article>
       </section>

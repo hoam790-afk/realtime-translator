@@ -19,6 +19,10 @@ let isRestarting = false;
 let currentConversationId = null;
 const clientTokenKey = "dml_client_token";
 
+if (!localStorage.getItem(clientTokenKey)) {
+  window.location.replace(`/license/?next=${encodeURIComponent(window.location.pathname)}`);
+}
+
 function setStatus(label, state = "idle") {
   statusText.textContent = label;
   statusDot.className = `status-dot ${state === "live" ? "live" : ""} ${state === "error" ? "error" : ""}`;
