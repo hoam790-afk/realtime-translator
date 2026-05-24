@@ -14,8 +14,8 @@
           <span>Duong Minh Logistics</span>
         </a>
         <nav class="portal-nav">
-          <a href="/">Dich 1 chieu</a>
-          <a href="/conversation/">Hoi thoai tu dong</a>
+          <a href="/">Dịch 1 chiều</a>
+          <a href="/conversation/">Hội thoại tự động</a>
           <a href="/admin/">Admin</a>
         </nav>
       </header>
@@ -23,21 +23,23 @@
       <section class="portal-grid">
         <article class="portal-card login-card">
           <p class="eyebrow">Client Portal</p>
-          <h1>Tai khoan & lich su phien dich</h1>
-          <p class="portal-muted">Dang nhap de luu lai lich su noi chuyen theo tung tai khoan. Ban co the xem lai hoac xoa khi khong can.</p>
+          <h1>Tài khoản & lịch sử phiên dịch</h1>
+          <p class="portal-muted">
+            Đăng nhập để lưu lại lịch sử nói chuyện theo từng tài khoản. Bạn có thể xem lại hoặc xóa khi không cần.
+          </p>
 
           <form id="login-form" class="portal-form">
             <label>
               Email
               <input id="email" type="email" placeholder="name@company.com" required />
             </label>
-            <button type="submit">Dang nhap bang email</button>
-            <button id="google-login" type="button" class="secondary-button">Dang nhap bang Google</button>
+            <button type="submit">Đăng nhập bằng email</button>
+            <button id="google-login" type="button" class="secondary-button">Đăng nhập bằng Google</button>
           </form>
 
           <div id="account-box" class="account-box hidden">
             <span id="account-email"></span>
-            <button id="logout-button" type="button" class="text-button">Dang xuat</button>
+            <button id="logout-button" type="button" class="text-button">Đăng xuất</button>
           </div>
         </article>
 
@@ -45,12 +47,12 @@
           <div class="section-head">
             <div>
               <p class="eyebrow">History</p>
-              <h2>Lich su hoi thoai</h2>
+              <h2>Lịch sử hội thoại</h2>
             </div>
-            <button id="refresh-history" type="button" class="secondary-button">Tai lai</button>
+            <button id="refresh-history" type="button" class="secondary-button">Tải lại</button>
           </div>
           <div id="history-list" class="history-list">
-            <p class="empty">Dang nhap de xem lich su.</p>
+            <p class="empty">Đăng nhập để xem lịch sử.</p>
           </div>
         </article>
       </section>
