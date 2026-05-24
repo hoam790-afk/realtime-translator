@@ -559,6 +559,12 @@ button:disabled {
   background: white;
 }
 
+.history-actions {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+}
+
 .history-item.wide {
   grid-template-columns: 1fr;
 }
@@ -580,6 +586,44 @@ button:disabled {
   color: var(--ink);
 }
 
+.history-detail-card {
+  grid-column: 1 / -1;
+}
+
+.history-detail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.detail-group {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  max-height: 58vh;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.detail-group h3 {
+  margin: 0;
+  color: var(--brand-red-dark);
+  font-size: 0.98rem;
+}
+
+.detail-message {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  line-height: 1.55;
+}
+
 .hidden {
   display: none !important;
 }
@@ -588,6 +632,7 @@ button:disabled {
   .hero,
   .workspace,
   .panels,
+  .history-detail,
   .portal-grid,
   .admin-grid {
     grid-template-columns: 1fr;

@@ -8,6 +8,10 @@ const historyCard = document.querySelector("#history-card");
 const oneWayHistory = document.querySelector("#one-way-history");
 const conversationHistory = document.querySelector("#conversation-history");
 const refreshHistory = document.querySelector("#refresh-history");
+const historyDetailCard = document.querySelector("#history-detail-card");
+const historyDetail = document.querySelector("#history-detail");
+const detailTitle = document.querySelector("#detail-title");
+const closeDetail = document.querySelector("#close-detail");
 
 const tokenKey = "dml_client_token";
 const userKey = "dml_client_user";
@@ -49,6 +53,7 @@ function updateAccount() {
     loginForm.classList.remove("hidden");
     accountBox.classList.add("hidden");
     historyCard.classList.add("hidden");
+    historyDetailCard.classList.add("hidden");
     return;
   }
 
@@ -81,10 +86,17 @@ function renderGroup(container, conversations, emptyText) {
         <p>${new Date(item.updatedAt).toLocaleString("vi-VN")} · ${item.messageCount || 0} dòng</p>
         <p class="preview">${item.preview || ""}</p>
       </div>
-      <button type="button" class="danger-button">Xóa</button>
+      <div class="history-actions">
+        <button type="button" class="secondary-button" data-action="view">Xem</button>
+        <button type="button" class="danger-button" data-action="delete">Xóa</button>
+      </div>
     `;
-    row.querySelector("button").addEventListener("click", async () => {
+    row.querySelector('[data-action="view"]').addEventListener("click", async () => {
+      await openDetail(item.id);
+    });
+    row.querySelector('[data-action="delete"]').addEventListener("click", async () => {
       await api(`/api/history/${item.id}`, { method: "DELETE" });
+      historyDetailCard.classList.add("hidden");
       await loadHistory();
     });
     container.append(row);
@@ -94,8 +106,45 @@ function renderGroup(container, conversations, emptyText) {
 function renderHistory(conversations) {
   const oneWay = conversations.filter((item) => item.mode === "one-way");
   const twoWay = conversations.filter((item) => item.mode !== "one-way");
-  renderGroup(oneWayHistory, oneWay, "Chưa có lịch sử dịch 1 chiều.");
-  renderGroup(conversationHistory, twoWay, "Chưa có lịch sử hội thoại tự động.");
+  renderGroup(oneWayHistory, oneWay, "Chưa có lịch sử dịch tự động.");
+  renderGroup(conversationHistory, twoWay, "Chưa có lịch sử dịch 2 chiều.");
+}
+
+function renderMessageGroup(title, messages) {
+  const section = document.createElement("section");
+  section.className = "detail-group";
+  const heading = document.createElement("h3");
+  heading.textContent = title;
+  section.append(heading);
+
+  if (!messages.length) {
+    section.append(emptyNode("Chưa có nội dung."));
+    return section;
+  }
+
+  messages.forEach((message) => {
+    const item = document.createElement("p");
+    item.className = "detail-message";
+    item.textContent = message.text;
+    section.append(item);
+  });
+  return section;
+}
+
+async function openDetail(id) {
+  const data = await api(`/api/history/${id}`);
+  const conversation = data.conversation;
+  const messages = conversation.messages || [];
+  const sourceMessages = messages.filter((message) => message.role !== "translation");
+  const translationMessages = messages.filter((message) => message.role === "translation");
+
+  detailTitle.textContent = conversation.title || "Chi tiết phiên dịch";
+  historyDetail.replaceChildren(
+    renderMessageGroup("Âm thanh vào", sourceMessages),
+    renderMessageGroup("Bản dịch", translationMessages)
+  );
+  historyDetailCard.classList.remove("hidden");
+  historyDetailCard.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function loadHistory() {
@@ -144,10 +193,12 @@ logoutButton.addEventListener("click", () => {
   localStorage.removeItem(tokenKey);
   localStorage.removeItem(userKey);
   historyCard.classList.add("hidden");
+  historyDetailCard.classList.add("hidden");
   updateAccount();
 });
 
 refreshHistory.addEventListener("click", loadHistory);
+closeDetail.addEventListener("click", () => historyDetailCard.classList.add("hidden"));
 
 updateAccount();
 loadHistory();
